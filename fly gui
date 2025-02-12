@@ -1,0 +1,88 @@
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+
+-- Create ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+-- Function to make buttons draggable
+local function makeDraggable(button)
+    local dragging
+    local dragInput
+    local dragStart
+    local startPos
+    
+    local function update(input)
+        local delta = input.Position - dragStart
+        button.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+    
+    button.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = button.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    
+    button.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    
+    game:GetService("UserInputService").InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            update(input)
+        end
+    end)
+end
+
+-- Create Enable Fly Button
+local enableButton = Instance.new("TextButton")
+enableButton.Parent = screenGui
+enableButton.Size = UDim2.new(0, 200, 0, 50)
+enableButton.Position = UDim2.new(0.5, -100, 0.8, 0)
+enableButton.Text = "Enable Fly"
+enableButton.BackgroundColor3 = Color3.fromRGB(0, 0, 255)
+enableButton.TextSize = 20
+makeDraggable(enableButton)
+
+-- Create Disable Fly Button
+local disableButton = Instance.new("TextButton")
+disableButton.Parent = screenGui
+disableButton.Size = UDim2.new(0, 200, 0, 50)
+disableButton.Position = UDim2.new(0.5, -100, 0.9, 0)
+disableButton.Text = "Disable Fly"
+disableButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+disableButton.TextSize = 20
+makeDraggable(disableButton)
+
+local bodyVelocity
+
+-- Fly Function
+local function enableFly()
+    if not bodyVelocity then
+        bodyVelocity = Instance.new("BodyVelocity")
+        bodyVelocity.Velocity = Vector3.new(0, 50, 0) -- Adjust vertical lift
+        bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        bodyVelocity.Parent = character.HumanoidRootPart
+    end
+end
+
+-- Disable Fly Function
+local function disableFly()
+    if bodyVelocity then
+        bodyVelocity:Destroy()
+        bodyVelocity = nil
+    end
+end
+
+enableButton.MouseButton1Click:Connect(enableFly)
+disableButton.MouseButton1Click:Connect(disableFly)
