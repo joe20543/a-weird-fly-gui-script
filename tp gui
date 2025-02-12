@@ -1,0 +1,159 @@
+-- Place this script in a LocalScript under StarterPlayerScripts
+local player = game.Players.LocalPlayer
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player.PlayerGui
+
+-- Create the main frame
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 300, 0, 400)
+mainFrame.Position = UDim2.new(0.5, -150, 0.5, -200)
+mainFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+mainFrame.Parent = screenGui
+
+-- Create the textbox to enter username
+local usernameTextbox = Instance.new("TextBox")
+usernameTextbox.Size = UDim2.new(0, 280, 0, 40)
+usernameTextbox.Position = UDim2.new(0, 10, 0, 10)
+usernameTextbox.PlaceholderText = "Enter Player Username"
+usernameTextbox.Parent = mainFrame
+
+-- Create the teleport button
+local teleportButton = Instance.new("TextButton")
+teleportButton.Size = UDim2.new(0, 280, 0, 40)
+teleportButton.Position = UDim2.new(0, 10, 0, 60)
+teleportButton.Text = "Teleport"
+teleportButton.Parent = mainFrame
+
+-- Create the ScrollingFrame to display out-of-bounds players
+local scrollingFrame = Instance.new("ScrollingFrame")
+scrollingFrame.Size = UDim2.new(0, 280, 0, 280)
+scrollingFrame.Position = UDim2.new(0, 10, 0, 110)
+scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+scrollingFrame.ScrollBarThickness = 10
+scrollingFrame.BackgroundTransparency = 1
+scrollingFrame.Parent = mainFrame
+
+-- Function to check if a player is outside the map
+local function isPlayerOutsideMap(player)
+    local character = player.Character
+    if character then
+        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+        if humanoidRootPart then
+            -- Check if the player is outside the bounds (example: Y < -100 or beyond the map's X, Z bounds)
+            if humanoidRootPart.Position.Y < -100 or
+               humanoidRootPart.Position.X > 500 or humanoidRootPart.Position.X < -500 or
+               humanoidRootPart.Position.Z > 500 or humanoidRootPart.Position.Z < -500 then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+-- Function to create a button in the scrolling frame for each out-of-bounds player
+local function createPlayerButton(player)
+    local playerButton = Instance.new("TextButton")
+    playerButton.Size = UDim2.new(0, 280, 0, 40)
+    playerButton.Text = player.Name
+    playerButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+    playerButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    playerButton.Parent = scrollingFrame
+
+    playerButton.MouseButton1Click:Connect(function()
+        -- Teleport to the selected player
+        player.Character.HumanoidRootPart.CFrame = player.Character.HumanoidRootPart.CFrame
+    end)
+end
+
+-- Update the scrolling frame with out-of-bounds players
+local function updateOutOfBoundsPlayers()
+    -- Clear existing buttons
+    for _, child in pairs(scrollingFrame:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:Destroy()
+        end
+    end
+
+    -- Loop through all players and check if they are outside the map
+    for _, plr in pairs(game.Players:GetPlayers()) do
+        if plr ~= player and isPlayerOutsideMap(plr) then
+            createPlayerButton(plr)
+        end
+    end
+end
+
+-- Teleport function when the button is clicked
+teleportButton.MouseButton1Click:Connect(function()
+    local targetUsername = usernameTextbox.Text
+    local targetPlayer = game.Players:FindFirstChild(targetUsername)
+
+    if targetPlayer then
+        -- Teleport to the player if they are found
+        if targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            player.Character.HumanoidRootPart.CFrame = targetPlayer.Character.HumanoidRootPart.CFrame
+        end
+    else
+        warn("Player not found!")
+    end
+end)
+
+-- Update the list of out-of-bounds players every 5 seconds
+while true do
+    updateOutOfBoundsPlayers()
+    wait(5)
+end
+
+-- Functionality to drag the GUI
+local dragToggle = nil
+local dragStart = nil
+local dragOffset = nil
+
+local function updateDrag(input)
+    if dragToggle then
+        local delta = input.Position - dragStart
+        mainFrame.Position = UDim2.new(mainFrame.Position.X.Scale, dragOffset.X + delta.X, mainFrame.Position.Y.Scale, dragOffset.Y + delta.Y)
+    end
+end
+
+mainFrame.InputBegan:Connect(function(input, gameProcessed)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 and not gameProcessed then
+        dragToggle = true
+        dragStart = input.Position
+        dragOffset = Vector2.new(mainFrame.Position.X.Offset, mainFrame.Position.Y.Offset)
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragToggle = false
+            end
+        end)
+    end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(updateDrag)
+
+-- Resizing functionality for the GUI
+local resizeButton = Instance.new("TextButton")
+resizeButton.Size = UDim2.new(0, 20, 0, 20)
+resizeButton.Position = UDim2.new(1, -30, 1, -30)  -- Position it at the bottom-right corner
+resizeButton.Text = "+"
+resizeButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+resizeButton.Parent = mainFrame
+
+local function resizeGui(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        local sizeChange = input.Position.X - resizeButton.AbsolutePosition.X
+        local newSize = UDim2.new(0, math.max(300, sizeChange), 0, math.max(400, sizeChange))
+        mainFrame.Size = newSize
+    end
+end
+
+resizeButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        game:GetService("UserInputService").InputChanged:Connect(resizeGui)
+    end
+end)
+
+resizeButton.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        game:GetService("UserInputService").InputChanged:Disconnect(resizeGui)
+    end
+end)
