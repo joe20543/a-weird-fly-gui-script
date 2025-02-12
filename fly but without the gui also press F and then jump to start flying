@@ -1,0 +1,38 @@
+-- Fly Script
+print("if you like my fly script jpin my discord for more scripts and executors https://discord.gg/bTtWHE4Xem")
+local player = game.Players.LocalPlayer
+local mouse = player:GetMouse()
+local flying = false
+local speed = 50
+
+local function fly()
+    local character = player.Character
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    local bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+    bodyVelocity.MaxForce = Vector3.new(4000, 4000, 4000)
+    bodyVelocity.Parent = character.PrimaryPart
+
+    local bodyGyro = Instance.new("BodyGyro")
+    bodyGyro.CFrame = character.PrimaryPart.CFrame
+    bodyGyro.MaxTorque = Vector3.new(4000, 4000, 4000)
+    bodyGyro.Parent = character.PrimaryPart
+
+    while flying do
+        bodyVelocity.Velocity = (character.PrimaryPart.CFrame.LookVector * speed)
+        bodyGyro.CFrame = workspace.CurrentCamera.CFrame
+        wait()
+    end
+
+    bodyVelocity:Destroy()
+    bodyGyro:Destroy()
+end
+
+mouse.KeyDown:Connect(function(key)
+    if key == "f" then
+        flying = not flying
+        if flying then
+            fly()
+        end
+    end
+end)
